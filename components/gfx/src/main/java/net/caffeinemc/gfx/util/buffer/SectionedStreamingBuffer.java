@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.buffer.streaming;
+package net.caffeinemc.gfx.util.buffer;
 
 import java.util.EnumSet;
 
@@ -6,7 +6,7 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBuffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.util.MathUtil;
+import net.caffeinemc.gfx.internal.MathUtil;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -219,7 +219,7 @@ public class SectionedStreamingBuffer implements StreamingBuffer {
             return this.view;
         }
 
-        public long getOffset() {
+        public long getDeviceOffset() {
             return this.offset;
         }
 

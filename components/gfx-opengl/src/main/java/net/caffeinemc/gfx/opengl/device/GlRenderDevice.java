@@ -1,5 +1,8 @@
 package net.caffeinemc.gfx.opengl.device;
 
+import java.util.EnumSet;
+import java.util.Locale;
+
 import net.caffeinemc.gfx.api.buffer.*;
 import net.caffeinemc.gfx.api.device.RenderConfiguration;
 import net.caffeinemc.gfx.api.device.commands.PipelineGate;
@@ -28,6 +31,8 @@ import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.gfx.api.pipeline.PipelineDescription;
 import net.caffeinemc.gfx.api.sync.Fence;
 import net.caffeinemc.gfx.api.texture.Sampler;
+import net.caffeinemc.gfx.util.buffer.DualStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import org.apache.commons.lang3.Validate;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.MathUtil;
@@ -37,34 +42,57 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.lwjgl.system.MemoryUtil;
+
 public class GlRenderDevice implements RenderDevice {
     private final GlPipelineManager pipelineManager;
     private final RenderDeviceProperties properties;
+
+    private final StreamingBuffer parameterBuffer;
 
     public GlRenderDevice(GlPipelineManager pipelineManager) {
         // TODO: move this into platform code
         this.pipelineManager = pipelineManager;
         this.properties = getDeviceProperties();
+        if (this.properties.useMDICountEmulation) {
+            // FIXME: constants for section count is bad, just move all of this it sucks
+            this.parameterBuffer = new DualStreamingBuffer(
+                    this,
+                    1,
+                    Integer.BYTES * 1024,
+                    4,
+                    EnumSet.of(MappedBufferFlags.EXPLICIT_FLUSH)
+            );
+        } else {
+            this.parameterBuffer = null;
+        }
     }
 
     private static RenderDeviceProperties getDeviceProperties() {
-        var uniformBufferAlignment = GL45C.glGetInteger(GL45C.GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT);
+        var glCaps = GL.getCapabilities();
 
+        int uniformBufferAlignment = GL45C.glGetInteger(GL45C.GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT);
         if (!MathUtil.mathIsPoT(uniformBufferAlignment)) {
             throw new RuntimeException("GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT is not a power-of-two (found value of %s)"
                     .formatted(uniformBufferAlignment));
         }
 
-        var storageBufferAlignment = GL45C.glGetInteger(GL45C.GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT);
-
+        int storageBufferAlignment = GL45C.glGetInteger(GL45C.GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT);
         if (!MathUtil.mathIsPoT(storageBufferAlignment)) {
             throw new RuntimeException("GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT is not a power-of-two (found value of %s)"
                     .formatted(storageBufferAlignment));
         }
 
+        String vendorString = GL45C.glGetString(GL45C.GL_VENDOR);
+        boolean isVendorIntel = vendorString != null && vendorString.toLowerCase(Locale.ROOT).contains("intel");
+        boolean hasMDICountSupport = glCaps.GL_ARB_indirect_parameters;
+        boolean useMDICountEmulation = true;//isVendorIntel && hasMDICountSupport;
+
+
         return new RenderDeviceProperties(
                 uniformBufferAlignment,
-                storageBufferAlignment
+                storageBufferAlignment,
+                useMDICountEmulation
         );
     }
 
@@ -225,9 +253,10 @@ public class GlRenderDevice implements RenderDevice {
 
     @Override
     public <PROGRAM, ARRAY extends Enum<ARRAY>> void usePipeline(Pipeline<PROGRAM, ARRAY> pipeline, PipelineGate<PROGRAM, ARRAY> gate) {
-        this.pipelineManager.bindPipeline(pipeline, (state) ->
-                gate.run(new ImmediateRenderCommandList<>((GlVertexArray<ARRAY>) pipeline.getVertexArray()), pipeline.getProgram().getInterface(), state)
-        );
+        this.pipelineManager.bindPipeline(pipeline, (state) -> {
+            RenderCommandList<ARRAY> commandList = this.properties.useMDICountEmulation ? new EmulatedMDIImmediateRenderCommandList<>((GlVertexArray<ARRAY>) pipeline.getVertexArray(), this.parameterBuffer) : new ImmediateRenderCommandList<>((GlVertexArray<ARRAY>) pipeline.getVertexArray());
+            gate.run(commandList, pipeline.getProgram().getInterface(), state);
+        });
     }
 
     @Override
@@ -272,12 +301,12 @@ public class GlRenderDevice implements RenderDevice {
     }
 
     private static class ImmediateRenderCommandList<T extends Enum<T>> implements RenderCommandList<T> {
-        private final int array;
+        protected final int array;
 
-        private Buffer elementBuffer;
-        private Buffer commandBuffer;
+        protected Buffer elementBuffer;
+        protected Buffer commandBuffer;
 
-        private final Buffer[] vertexBuffers;
+        protected final Buffer[] vertexBuffers;
 
         public ImmediateRenderCommandList(GlVertexArray<T> array) {
             this.array = array.getHandle();
@@ -331,7 +360,7 @@ public class GlRenderDevice implements RenderDevice {
         }
 
         @Override
-        public void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount) {
+        public void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount, int frameIndex) {
             if (RenderConfiguration.API_CHECKS) {
                 Validate.notNull(this.elementBuffer, "Element buffer target not bound");
                 Validate.notNull(this.commandBuffer, "Command buffer target not bound");
@@ -344,6 +373,51 @@ public class GlRenderDevice implements RenderDevice {
             }
 
             GL43C.glMultiDrawElementsIndirect(GlEnum.from(primitiveType), GlEnum.from(elementType), indirectOffset, indirectCount, 0);
+        }
+    }
+
+    private static class EmulatedMDIImmediateRenderCommandList<T extends Enum<T>> extends ImmediateRenderCommandList<T> {
+
+        // TODO: this is gross, store this somewhere else
+        private final StreamingBuffer parameterBuffer;
+
+        public EmulatedMDIImmediateRenderCommandList(GlVertexArray<T> array, StreamingBuffer parameterBuffer) {
+            super(array);
+            this.parameterBuffer = parameterBuffer;
+        }
+
+        @Override
+        public void multiDrawElementsIndirect(PrimitiveType primitiveType, ElementFormat elementType, long indirectOffset, int indirectCount, int frameIndex) {
+            if (RenderConfiguration.API_CHECKS) {
+                Validate.notNull(this.elementBuffer, "Element buffer target not bound");
+                Validate.notNull(this.commandBuffer, "Command buffer target not bound");
+                Validate.noNullElements(this.vertexBuffers, "One or more vertex buffer targets are not bound");
+
+                Validate.isTrue(indirectOffset >= 0, "Command offset must be greater than or equal to zero");
+                Validate.isTrue(indirectCount > 0, "Command count must be positive");
+                Validate.isTrue(indirectOffset + (indirectCount * 20L) <= this.commandBuffer.capacity(),
+                        "Command buffer range is out of bounds");
+            }
+
+            // lol, literally just write one element to the section and flush
+            var section = this.parameterBuffer.getSection(frameIndex);
+            var sectionView = section.getView();
+            var positionInSection = sectionView.position();
+            MemoryUtil.memPutInt(MemoryUtil.memAddress0(sectionView) + positionInSection, indirectCount);
+            sectionView.position(positionInSection + Integer.BYTES);
+            section.flushPartial();
+
+            // bind the buffer we just flushed
+            GL45C.glBindBuffer(ARBIndirectParameters.GL_PARAMETER_BUFFER_ARB, GlBuffer.getHandle(this.parameterBuffer.getBufferObject()));
+
+            ARBIndirectParameters.glMultiDrawElementsIndirectCountARB(
+                    GlEnum.from(primitiveType),
+                    GlEnum.from(elementType),
+                    indirectOffset,
+                    section.getDeviceOffset() + positionInSection,
+                    indirectCount,
+                    0
+            );
         }
     }
 

@@ -11,8 +11,19 @@ public final class RenderDeviceProperties {
      */
     public final int storageBufferOffsetAlignment;
 
-    public RenderDeviceProperties(int uniformBufferOffsetAlignment, int storageBufferOffsetAlignment) {
+    /**
+     * Determines whether glMultiDrawElementsIndirect should use glMultiDrawElementsIndirectCountARB
+     * to bypass driver issues.
+     */
+    public final boolean useMDICountEmulation;
+
+    public RenderDeviceProperties(
+            int uniformBufferOffsetAlignment,
+            int storageBufferOffsetAlignment,
+            boolean useMDICountEmulation
+    ) {
         this.uniformBufferOffsetAlignment = uniformBufferOffsetAlignment;
         this.storageBufferOffsetAlignment = storageBufferOffsetAlignment;
+        this.useMDICountEmulation = useMDICountEmulation;
     }
 }

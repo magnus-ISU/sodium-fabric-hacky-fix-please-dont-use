@@ -7,7 +7,6 @@ import java.util.EnumSet;
 import net.caffeinemc.gfx.api.array.VertexArrayDescription;
 import net.caffeinemc.gfx.api.array.VertexArrayResourceBinding;
 import net.caffeinemc.gfx.api.array.attribute.VertexAttributeBinding;
-import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.gfx.api.pipeline.Pipeline;
@@ -18,8 +17,8 @@ import net.caffeinemc.gfx.api.shader.ShaderType;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.gfx.api.types.PrimitiveType;
 import net.caffeinemc.sodium.SodiumClientMod;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.region.RenderRegion;
 import net.caffeinemc.sodium.render.chunk.shader.ChunkShaderBindingPoints;
@@ -137,7 +136,8 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
                         PrimitiveType.TRIANGLES,
                         ElementFormat.UNSIGNED_INT,
                         batch.getCommandBufferOffset(),
-                        batch.getCommandCount()
+                        batch.getCommandCount(),
+                        frameIndex
                 );
             }
         });
@@ -165,7 +165,7 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
         matricesSection.flushFull();
 
-        state.bindBufferBlock(programInterface.uniformCameraMatrices, this.bufferCameraMatrices.getBufferObject(), matricesSection.getOffset(), matricesSection.getView().capacity());
+        state.bindBufferBlock(programInterface.uniformCameraMatrices, this.bufferCameraMatrices.getBufferObject(), matricesSection.getDeviceOffset(), matricesSection.getView().capacity());
 
         var fogParamsSection = this.bufferFogParameters.getSection(frameIndex);
         var fogParamsBuf = fogParamsSection.getView();
@@ -181,7 +181,7 @@ public class DefaultChunkRenderer extends AbstractChunkRenderer {
 
         fogParamsSection.flushFull();
 
-        state.bindBufferBlock(programInterface.uniformFogParameters, this.bufferFogParameters.getBufferObject(), fogParamsSection.getOffset(), fogParamsSection.getView().capacity());
+        state.bindBufferBlock(programInterface.uniformFogParameters, this.bufferFogParameters.getBufferObject(), fogParamsSection.getDeviceOffset(), fogParamsSection.getView().capacity());
     }
 
     private static ShaderConstants getShaderConstants(ChunkRenderPass pass, TerrainVertexType vertexType) {

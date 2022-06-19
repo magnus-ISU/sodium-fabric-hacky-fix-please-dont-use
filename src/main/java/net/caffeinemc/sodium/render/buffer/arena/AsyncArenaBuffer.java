@@ -3,8 +3,7 @@ package net.caffeinemc.sodium.render.buffer.arena;
 import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.ImmutableBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
 import org.lwjgl.system.MemoryUtil;
 
 import java.util.*;
@@ -262,7 +261,7 @@ public class AsyncArenaBuffer implements ArenaBuffer {
 
         // Write the PendingUploads to the mapped streaming buffer
         // Also create the pending transfers to go from streaming buffer -> arena buffer
-        long sectionOffset = section.getOffset() + section.getView().position();
+        long sectionOffset = section.getDeviceOffset() + section.getView().position();
         // this is basically the address of what sectionOffset points to
         long sectionAddress = MemoryUtil.memAddress(section.getView());
         int transferOffset = 0;

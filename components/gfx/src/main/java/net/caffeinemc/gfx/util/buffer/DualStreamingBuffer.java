@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.buffer.streaming;
+package net.caffeinemc.gfx.util.buffer;
 
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
@@ -11,12 +11,18 @@ public class DualStreamingBuffer extends SectionedStreamingBuffer {
     private ImmutableBuffer deviceResidentBuffer;
 
     public DualStreamingBuffer(RenderDevice device, int alignment, int sectionCapacity, int sectionCount, Set<MappedBufferFlags> extraFlags) {
-        super(device, alignment, sectionCapacity, sectionCount, extraFlags);
+        super(device, alignment, sectionCapacity, sectionCount, addNeededFlags(extraFlags));
 
         this.deviceResidentBuffer = device.createBuffer(
                 sectionCapacity,
                 EnumSet.noneOf(ImmutableBufferFlags.class)
         );
+    }
+
+    private static Set<MappedBufferFlags> addNeededFlags(Set<MappedBufferFlags> extraFlags) {
+        // client storage is added to the staging buffer because the copy will go from cpu -> gpu
+        extraFlags.add(MappedBufferFlags.CLIENT_STORAGE);
+        return extraFlags;
     }
 
     @Override
@@ -115,7 +121,7 @@ public class DualStreamingBuffer extends SectionedStreamingBuffer {
         }
 
         @Override
-        public long getOffset() {
+        public long getDeviceOffset() {
             return 0; // FIXME: move this lol
         }
     }

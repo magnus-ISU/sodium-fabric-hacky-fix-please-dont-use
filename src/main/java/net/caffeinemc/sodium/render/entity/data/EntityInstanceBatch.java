@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.caffeinemc.gfx.api.types.ElementFormat;
 import net.caffeinemc.sodium.interop.vanilla.math.matrix.Matrix4fExtended;
 import net.caffeinemc.sodium.interop.vanilla.math.matrix.MatrixUtil;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.entity.compile.BuiltEntityModel;
 import net.caffeinemc.sodium.render.sequence.SequenceBuilder;
 import net.minecraft.client.render.LightmapTextureManager;

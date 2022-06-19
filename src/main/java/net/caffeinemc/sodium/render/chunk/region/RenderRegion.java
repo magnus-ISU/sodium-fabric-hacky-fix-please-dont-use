@@ -3,7 +3,7 @@ package net.caffeinemc.sodium.render.chunk.region;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.render.buffer.arena.AsyncArenaBuffer;
 import net.caffeinemc.sodium.render.buffer.arena.ArenaBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.terrain.format.TerrainVertexType;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.util.math.ChunkSectionPos;

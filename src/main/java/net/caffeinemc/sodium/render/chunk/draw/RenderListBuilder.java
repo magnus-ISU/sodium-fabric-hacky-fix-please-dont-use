@@ -5,9 +5,9 @@ import net.caffeinemc.gfx.api.buffer.Buffer;
 import net.caffeinemc.gfx.api.buffer.MappedBufferFlags;
 import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
-import net.caffeinemc.sodium.render.buffer.streaming.DualStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.DualStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.passes.ChunkRenderPass;
 import net.caffeinemc.sodium.render.chunk.passes.DefaultRenderPasses;
 import net.caffeinemc.sodium.render.chunk.state.ChunkRenderBounds;
@@ -16,7 +16,6 @@ import net.caffeinemc.sodium.render.terrain.quad.properties.ChunkMeshFace;
 import net.caffeinemc.sodium.util.MathUtil;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.MathHelper;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -56,10 +55,7 @@ public class RenderListBuilder {
                 1,
                 1048576, // start with 1 MiB and expand from there if needed
                 maxInFlightFrames,
-                EnumSet.of(
-                        MappedBufferFlags.EXPLICIT_FLUSH,
-                        MappedBufferFlags.CLIENT_STORAGE
-                )
+                EnumSet.of(MappedBufferFlags.EXPLICIT_FLUSH)
         );
         this.instanceBuffer = new SectionedStreamingBuffer(
                 device,
@@ -232,8 +228,8 @@ public class RenderListBuilder {
                     continue;
                 }
 
-                long mainCommandBufferOffset = commandBufferSection.getOffset() + commandBufferCurrentPos;
-                long mainInstanceBufferOffset = instanceBufferSection.getOffset() + instanceBufferCurrentPos;
+                long mainCommandBufferOffset = commandBufferSection.getDeviceOffset() + commandBufferCurrentPos;
+                long mainInstanceBufferOffset = instanceBufferSection.getDeviceOffset() + instanceBufferCurrentPos;
                 for (var batch : renderList.batches) {
                     batch.commandBufferOffset += mainCommandBufferOffset;
                     batch.instanceBufferOffset += mainInstanceBufferOffset;

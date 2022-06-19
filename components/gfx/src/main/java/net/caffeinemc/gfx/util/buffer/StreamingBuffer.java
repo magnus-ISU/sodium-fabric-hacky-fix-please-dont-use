@@ -1,4 +1,4 @@
-package net.caffeinemc.sodium.render.buffer.streaming;
+package net.caffeinemc.gfx.util.buffer;
 
 import net.caffeinemc.gfx.api.buffer.Buffer;
 
@@ -22,7 +22,7 @@ public interface StreamingBuffer {
     interface WritableSection {
         ByteBuffer getView();
 
-        long getOffset();
+        long getDeviceOffset();
 
         void flushFull();
 

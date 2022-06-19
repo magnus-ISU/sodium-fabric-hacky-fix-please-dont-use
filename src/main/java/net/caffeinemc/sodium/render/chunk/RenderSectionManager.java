@@ -10,7 +10,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.interop.vanilla.math.frustum.Frustum;
 import net.caffeinemc.sodium.render.SodiumWorldRenderer;
-import net.caffeinemc.sodium.render.buffer.streaming.StreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.StreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.compile.ChunkBuilder;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.AbstractBuilderTask;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.EmptyTerrainBuildTask;

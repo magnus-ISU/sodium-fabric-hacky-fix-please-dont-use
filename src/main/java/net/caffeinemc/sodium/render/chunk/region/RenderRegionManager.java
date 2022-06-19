@@ -8,7 +8,7 @@ import net.caffeinemc.gfx.api.device.RenderDevice;
 import net.caffeinemc.sodium.SodiumClientMod;
 import net.caffeinemc.sodium.render.buffer.arena.BufferSegment;
 import net.caffeinemc.sodium.render.buffer.arena.PendingUpload;
-import net.caffeinemc.sodium.render.buffer.streaming.SectionedStreamingBuffer;
+import net.caffeinemc.gfx.util.buffer.SectionedStreamingBuffer;
 import net.caffeinemc.sodium.render.chunk.RenderSection;
 import net.caffeinemc.sodium.render.chunk.compile.tasks.TerrainBuildResult;
 import net.caffeinemc.sodium.render.chunk.draw.IntPool;
